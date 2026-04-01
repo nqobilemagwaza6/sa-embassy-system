@@ -50,6 +50,7 @@ export default {
         if (!res.ok) throw new Error((data && data.detail) || JSON.stringify(data) || 'Registration failed')
         localStorage.setItem('token', data.token)
         localStorage.setItem('is_superuser', '0')
+        window.dispatchEvent(new Event('auth-changed'))
         this.$router.push('/dashboard')
       } catch (e) {
         this.error = e.message || 'Registration failed'

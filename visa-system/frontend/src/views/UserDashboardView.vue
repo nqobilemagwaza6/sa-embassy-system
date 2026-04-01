@@ -136,6 +136,9 @@ export default {
       applications: [],
       notifications: [],
       events: {},
+      pollTimer: null,
+      polling: false,
+      pollMs: 2000,
       loading: false,
       saving: false,
       error: '',
@@ -247,9 +250,9 @@ export default {
         state.loading = false
       }
     },
-    async maybeLoadEvents (app) {
+    async maybeLoadEvents (app, force = false) {
       const appId = app.id
-      if (this.events[appId]) return
+      if (this.events[appId] && !force) return
       try {
         const res = await fetch(`http://127.0.0.1:8000/api/applications/${appId}/status-events/`, {
           headers: { ...this.authHeaders() }
@@ -257,6 +260,11 @@ export default {
         const evs = await res.json()
         if (!res.ok) throw new Error((evs && evs.detail) || 'Failed to load history')
         this.$set ? this.$set(this.events, appId, evs) : (this.events[appId] = evs)
+
+        // sync visible status with latest event
+        if (Array.isArray(evs) && evs.length > 0 && evs[0].to_status) {
+          this.applications = this.applications.map(a => (a.id === appId ? { ...a, status: evs[0].to_status } : a))
+        }
       } catch (e) {
         this.$set ? this.$set(this.events, appId, []) : (this.events[appId] = [])
       }
@@ -276,6 +284,26 @@ export default {
   },
   mounted () {
     this.loadAll()
+
+    this.pollTimer = setInterval(async () => {
+      if (this.polling) return
+      this.polling = true
+      try {
+        await this.loadAll()
+
+        // refresh events only for apps whose history has been opened
+        const openedIds = Object.keys(this.events || {})
+        for (const id of openedIds) {
+          const app = this.applications.find(a => String(a.id) === String(id))
+          if (app) await this.maybeLoadEvents(app, true)
+        }
+      } catch {} finally {
+        this.polling = false
+      }
+    }, this.pollMs)
+  },
+  beforeUnmount () {
+    if (this.pollTimer) clearInterval(this.pollTimer)
   }
 }
 </script>

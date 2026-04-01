@@ -120,6 +120,9 @@ export default {
       applications: [],
       adminEdit: {},
       stats: { total: 0, approved: 0, rejected: 0, pending: 0 },
+      pollTimer: null,
+      polling: false,
+      pollMs: 3000,
       loading: false,
       error: ''
     }
@@ -193,6 +196,7 @@ export default {
         if (!res.ok) throw new Error((updated && updated.detail) || JSON.stringify(updated) || 'Update failed')
         this.applications = this.applications.map(a => (a.id === id ? updated : a))
         this.computeStats()
+        await this.load()
       } catch (e) {
         row.error = e.message || 'Update failed'
       } finally {
@@ -202,6 +206,19 @@ export default {
   },
   mounted () {
     this.load()
+
+    this.pollTimer = setInterval(async () => {
+      if (this.polling) return
+      this.polling = true
+      try {
+        await this.load()
+      } catch {} finally {
+        this.polling = false
+      }
+    }, this.pollMs)
+  },
+  beforeUnmount () {
+    if (this.pollTimer) clearInterval(this.pollTimer)
   }
 }
 </script>

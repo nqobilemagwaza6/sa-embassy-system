@@ -50,11 +50,14 @@ export default {
           headers: { Authorization: `Token ${data.token}` }
         })
         const me = await meRes.json()
+        let superuser = false
         if (meRes.ok) {
-          localStorage.setItem('is_superuser', me.is_superuser ? '1' : '0')
+          superuser = !!me.is_superuser
+          localStorage.setItem('is_superuser', superuser ? '1' : '0')
         }
 
-        this.$router.push('/dashboard')
+        window.dispatchEvent(new Event('auth-changed'))
+        this.$router.push(superuser ? '/admin' : '/dashboard')
       } catch (e) {
         this.error = e.message || 'Login failed'
       } finally {

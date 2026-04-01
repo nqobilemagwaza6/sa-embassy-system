@@ -16,6 +16,11 @@ This project is a **Visa Application Tracking System** for South Africans to app
 - **Admin**:
   - Admin actions are allowed for **superusers only**.
   - The admin UI is the Vue page: `http://localhost:8080/admin` (or your dev port).
+  - **Superusers** sign in and are sent straight to **Admin Dashboard**. They do not see **My Dashboard** in the navigation (normal users never see Admin).
+
+## Landing page
+- Open `/` for the public **landing page** (register / sign-in CTAs).
+- After login: **normal users** go to `/dashboard`; **superusers** go to `/admin`.
 
 ## Project structure
 ```
@@ -76,6 +81,7 @@ Admin (superuser only):
 - `PATCH /api/applications/<id>/admin-status/` → update status + comment + creates notification
 
 ## Pages (Vue Router)
+- `/` (landing — public)
 - `/login`
 - `/register`
 - `/dashboard` (user dashboard)

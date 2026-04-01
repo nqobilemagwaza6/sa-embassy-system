@@ -16,6 +16,19 @@ from .serializers import (
 )
 
 
+def status_change_notification_message(to_status: str, application: Application) -> str:
+    """User-facing notification text when an admin updates application status."""
+    who = application.full_name.strip() if application.full_name else 'Your application'
+    ref = f'{who} (ref #{application.id})'
+    lines = {
+        'PENDING': f'{ref}: Your visa application is pending. We will notify you when processing begins.',
+        'UNDER_REVIEW': f'{ref}: Your application is now under review.',
+        'APPROVED': f'{ref}: Your application has been approved.',
+        'REJECTED': f'{ref}: Your application was not approved. Please read the admin comment for next steps.',
+    }
+    return lines.get(to_status, f'{ref}: Your application status was updated.')
+
+
 class RegisterViewSet(viewsets.ViewSet):
     permission_classes = [AllowAny]
 
@@ -108,11 +121,12 @@ class ApplicationViewSet(viewsets.ModelViewSet):
             comment=comment,
         )
 
-        Notification.objects.create(
-            user=application.user,
-            application=application,
-            message=f"Your visa application status changed to {to_status.replace('_', ' ').title()}",
-        )
+        if from_status != to_status:
+            Notification.objects.create(
+                user=application.user,
+                application=application,
+                message=status_change_notification_message(to_status, application),
+            )
 
         return Response(ApplicationSerializer(application, context={'request': request}).data)
 

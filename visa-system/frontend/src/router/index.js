@@ -1,9 +1,21 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
+function isSuper () {
+  return localStorage.getItem('is_superuser') === '1'
+}
+
+function defaultHome () {
+  const token = localStorage.getItem('token')
+  if (!token) return '/'
+  return isSuper() ? '/admin' : '/dashboard'
+}
+
 const routes = [
   {
     path: '/',
-    redirect: '/dashboard'
+    name: 'landing',
+    component: () => import('../views/LandingView.vue'),
+    meta: { public: true }
   },
   {
     path: '/login',
@@ -37,9 +49,27 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('token')
   const isPublic = to.meta && to.meta.public
-  if (!token && !isPublic) return next('/login')
-  if (token && (to.path === '/login' || to.path === '/register')) return next('/dashboard')
-  if (to.path === '/admin' && localStorage.getItem('is_superuser') !== '1') return next('/dashboard')
+
+  if (!token && !isPublic) {
+    return next('/login')
+  }
+
+  if (token && to.path === '/') {
+    return next(defaultHome())
+  }
+
+  if (token && (to.path === '/login' || to.path === '/register')) {
+    return next(defaultHome())
+  }
+
+  if (token && isSuper() && to.path === '/dashboard') {
+    return next('/admin')
+  }
+
+  if (to.path === '/admin' && localStorage.getItem('is_superuser') !== '1') {
+    return next('/dashboard')
+  }
+
   next()
 })
 
